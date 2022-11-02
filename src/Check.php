@@ -286,11 +286,11 @@ class Check
      */
     protected function generateProfanityExpression($word, $characterExpressions, $separatorExpression)
     {
-        $expression = '/' . preg_replace(
+        $expression = '/\b' . preg_replace(
                 array_keys($characterExpressions),
                 array_values($characterExpressions),
                 $word
-            ) . '/i';
+            ) . '\b/i';
 
         return str_replace(self::SEPARATOR_PLACEHOLDER, $separatorExpression, $expression);
     }
@@ -306,5 +306,31 @@ class Check
     private function stringHasProfanity($string, $profanity)
     {
         return preg_match($profanity, $string) === 1;
+    }
+
+    public function obfsucateProfaneWords($string) {
+        $profanities    = array();
+        $profanityCount = count($this->profanities);
+        for ($i = 0; $i < $profanityCount; $i++) {
+            $profanities[ $i ] = $this->generateProfanityExpression(
+                $this->profanities[ $i ],
+                $this->characterExpressions,
+                $this->separatorExpression
+            );
+        }
+        foreach ($profanities as $profanity) {
+            if ($this->stringHasProfanity($string, $profanity)) {
+                preg_match_all($profanity,$string,$matches, PREG_OFFSET_CAPTURE);
+                foreach($matches as $match) {
+                    foreach($match as $childmatch){
+                        $str1 = substr($string,0,$childmatch[1]);
+                        $str3 = str_repeat("*",strlen($childmatch[0]));
+                        $str2 = substr($string,$childmatch[1] + strlen($childmatch[0]));
+                        $string = $str1.$str3.$str2;
+                    }
+                }
+            }
+        }
+        return $string;
     }
 }
